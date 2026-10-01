@@ -2,7 +2,7 @@
 # Unofficial Microsoft OneNote client for Linux. Not affiliated with Microsoft.
 
 pkgname=onenote-linux
-pkgver=0.2.0
+pkgver=0.2.1
 pkgrel=1
 pkgdesc='Unofficial Microsoft OneNote desktop client for Linux'
 arch=('x86_64' 'aarch64')

@@ -6,6 +6,7 @@ const BUILT_IN: &[&str] = &[
     // OneNote surfaces
     "onenote.com",
     "office.com",
+    "office.net",
     "office365.com",
     "officeapps.live.com",
     "sharepoint.com",
@@ -207,6 +208,9 @@ mod tests {
             "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             "https://login.live.com/oauth20_authorize.srf",
             "https://contoso-my.sharepoint.com/personal/x/Documents/Notebooks",
+            // The embedded notebook viewer is served from a resources.office.net
+            // host; without this it was pushed out to the system browser.
+            "https://fa000000128.resources.office.net/1.0.0/en-us_web/index_onenotejs.html",
             "https://aadcdn.msauth.net/content/coreservices/1.4.8/en-US/favicon.ico",
         ] {
             assert!(matches_any(&u(url), &[]), "{url} should be allowed");
