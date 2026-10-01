@@ -93,8 +93,7 @@ pub fn handle(app: &AppHandle, url: &tauri::Url) -> bool {
                 domain: domain.clone(),
                 idp_host: None,
                 brand: None,
-                message: "Asking Microsoft which sign-in service your organisation uses..."
-                    .into(),
+                message: "Asking Microsoft which sign-in service your organisation uses...".into(),
             },
         );
         let result = discovery::discover(&domain).await;
@@ -108,7 +107,8 @@ fn to_view(result: discovery::Discovery) -> DiscoveryView {
     let (state, message) = match (result.federation, &result.idp_host) {
         (Federation::Managed, _) => (
             "managed",
-            "Your organisation uses Microsoft sign-in directly. No extra host is needed.".to_string(),
+            "Your organisation uses Microsoft sign-in directly. No extra host is needed."
+                .to_string(),
         ),
         (Federation::Federated, Some(host)) => (
             "federated",
@@ -158,7 +158,10 @@ fn push(app: &AppHandle, view: &DiscoveryView) {
 pub fn complete(app: &AppHandle, idp_host: &str) {
     let mut cfg = Config::load(app);
 
-    let host = idp_host.trim().trim_start_matches("https://").trim_matches('/');
+    let host = idp_host
+        .trim()
+        .trim_start_matches("https://")
+        .trim_matches('/');
     let host = host.split('/').next().unwrap_or("").to_ascii_lowercase();
     // Only persist a host the navigation policy already accepts, so the
     // allow-list can never be widened past what settings would permit.
@@ -180,7 +183,9 @@ pub fn complete(app: &AppHandle, idp_host: &str) {
         let _ = window.close();
     }
     window::show_main(app);
-    let _ = app.get_webview_window(window::MAIN_LABEL).map(|w| w.set_focus());
+    let _ = app
+        .get_webview_window(window::MAIN_LABEL)
+        .map(|w| w.set_focus());
 }
 
 pub fn show_setup_window(app: &AppHandle) {

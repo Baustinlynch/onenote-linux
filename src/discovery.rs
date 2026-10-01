@@ -82,7 +82,10 @@ pub fn normalise_domain(input: &str) -> Option<String> {
 
     // Drop an explicit port and any trailing root dot.
     if let Some((host, _)) = value.rsplit_once(':') {
-        if host.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-') {
+        if host
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        {
             value = host.to_string();
         }
     }
@@ -312,7 +315,9 @@ mod tests {
         // A host Microsoft hands back still has to be one we are willing to
         // render in a window titled OneNote.
         assert!(crate::nav::is_trusted_exact_host("sts.ea.edin.sch.uk"));
-        assert!(!crate::nav::is_trusted_exact_host("microsoft.com.attacker.net"));
+        assert!(!crate::nav::is_trusted_exact_host(
+            "microsoft.com.attacker.net"
+        ));
         assert!(!crate::nav::is_trusted_exact_host("localhost"));
     }
 }

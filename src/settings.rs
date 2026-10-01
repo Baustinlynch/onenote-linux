@@ -5,9 +5,7 @@
 //! the current config is injected at construction time, and saving navigates
 //! to an internal scheme the navigation handler consumes.
 
-use tauri::{
-    AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
-};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::config::{Config, WindowState};
 use crate::window;

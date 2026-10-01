@@ -39,11 +39,7 @@ pub fn build_main(app: &AppHandle, cfg: &Config) -> tauri::Result<WebviewWindow>
         .enable_clipboard_access()
         .zoom_hotkeys_enabled(true)
         .accept_first_mouse(true)
-        .initialization_script(format!(
-            "{}\n{}",
-            keys::BRIDGE_JS,
-            notify::BRIDGE_JS
-        ))
+        .initialization_script(format!("{}\n{}", keys::BRIDGE_JS, notify::BRIDGE_JS))
         .on_navigation(move |url| on_navigation(&nav_handle, url))
         .on_new_window(move |url, _features| on_new_window(&popup_handle, url))
         .on_page_load(move |window, payload| {

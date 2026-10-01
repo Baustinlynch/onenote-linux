@@ -80,8 +80,10 @@ pub fn handle(app: &AppHandle, url: &tauri::Url) -> bool {
     }
 
     if url.host_str() == Some("notify") {
-        let params: std::collections::HashMap<String, String> =
-            url.query_pairs().map(|(k, v)| (k.into_owned(), v.into_owned())).collect();
+        let params: std::collections::HashMap<String, String> = url
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
 
         if Config::load(app).notifications {
             spawn_toast(
@@ -100,9 +102,13 @@ pub fn handle(app: &AppHandle, url: &tauri::Url) -> bool {
 /// Fire a native toast. Clicking the action raises the main window.
 fn spawn_toast(app: &AppHandle, title: &str, body: &str, tag: &str) {
     let mut cmd = Command::new("notify-send");
-    cmd.args(["--app-name=OneNote", "--expire-time=8000", "--action=open,Open OneNote"])
-        .arg("--icon=onenote-linux")
-        .arg("--urgency=normal");
+    cmd.args([
+        "--app-name=OneNote",
+        "--expire-time=8000",
+        "--action=open,Open OneNote",
+    ])
+    .arg("--icon=onenote-linux")
+    .arg("--urgency=normal");
 
     if !tag.is_empty() {
         cmd.arg(format!("--replace-id={}", sanitize_tag(tag)));
