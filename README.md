@@ -1,5 +1,17 @@
 # onenote-linux
 
+> ⚠️ **VIBE-CODED WARNING**
+>
+> This project was written with AI assistance ("vibe-coded") and has **NOT**
+> been thoroughly audited for security, correctness, or completeness.
+> **Use at your own risk.** Review the source code before running on sensitive
+> systems. No warranty, express or implied. Not affiliated with Microsoft
+> Corporation.
+>
+> Source: https://github.com/Baustinlynch/onenote-linux
+
+# onenote-linux
+
 A thin, native desktop window around the Microsoft OneNote web client for
 Linux. Built with [Tauri v2](https://v2.tauri.app) and WebKitGTK.
 
@@ -31,16 +43,27 @@ notifications while using the webview already on your system.
   directly to find your identity provider, and pins it so single sign-on
   completes inside the app
 
+## Quick install (Arch / Arch-based)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/install.sh | bash
+```
+
+The script installs system dependencies via `pacman`, downloads the latest
+release binary, and sets up the desktop entry + icons. You will be prompted
+before anything runs.
+
 ## Requirements
 
 - WebKitGTK 4.1, GTK 4
 - `libayatana-appindicator` for the tray icon
 - `libnotify` (`notify-send`) for notifications
+- `xdg-utils` (for opening external links)
 
 On Arch:
 
 ```sh
-sudo pacman -S --needed webkit2gtk-4.1 gtk4 libayatana-appindicator libnotify
+sudo pacman -S --needed webkit2gtk-4.1 gtk4 libayatana-appindicator libnotify xdg-utils
 ```
 
 ## Build and run
