@@ -175,8 +175,26 @@ info "Asset URL: ${ASSET_URL}"
 step "Downloading the application binary"
 run mkdir -p "${INSTALL_DIR}"
 info "Saving to ${INSTALL_DIR}/${BINARY_NAME}"
-run curl -fL --progress-bar "${ASSET_URL}" -o "${INSTALL_DIR}/${BINARY_NAME}"
-run chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+
+# Download beside the target and rename into place. Writing the destination
+# directly fails with "Text file busy" while the app is running; a rename
+# swaps the directory entry, so the running process keeps the old inode.
+TMP_BIN="${INSTALL_DIR}/.${BINARY_NAME}.tmp.$$"
+trap 'rm -f "${TMP_BIN}"' EXIT
+
+run curl -fL --progress-bar "${ASSET_URL}" -o "${TMP_BIN}"
+
+# A 200 response can still be an HTML error page, and clobbering a working
+# binary with that would be worse than failing here.
+if [[ "$(head -c 4 "${TMP_BIN}" | od -An -tx1 | tr -d ' \n')" != "7f454c46" ]]; then
+    err "Downloaded file is not an ELF binary; refusing to install it."
+    err "This usually means the download was intercepted or corrupted."
+    exit 1
+fi
+
+run chmod +x "${TMP_BIN}"
+run mv -f "${TMP_BIN}" "${INSTALL_DIR}/${BINARY_NAME}"
+trap - EXIT
 ok "Installed ${INSTALL_DIR}/${BINARY_NAME}"
 
 # ── desktop entry & icons ───────────────────────────────────────────────
@@ -235,6 +253,8 @@ ${GREEN}Installation complete!${NC}
 
 Run OneNote from your application menu, or run:
   ${BINARY_NAME}
+
+If OneNote is already running, close and reopen it to use the new version.
 
 First launch will open a setup wizard to discover your organisation's
 sign-in server (work/school accounts). Personal accounts work immediately.
