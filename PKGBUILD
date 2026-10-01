@@ -14,7 +14,7 @@ makedepends=('cargo' 'rust')
 provides=('onenote')
 conflicts=('onenote-desktop')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Baustinlynch/onenote-linux/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')  # Replace with actual sha256 when publishing a release
+sha256sums=('0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5')
 
 build() {
     cd "$srcdir/$pkgname-$pkgver"
