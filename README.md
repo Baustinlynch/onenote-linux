@@ -52,8 +52,14 @@ curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/i
 ```
 
 The script installs system dependencies via `pacman`, downloads the latest
-release binary, and sets up the desktop entry + icons. You will be prompted
-before anything runs.
+release binary, and sets up the desktop entry + icons. It prints each step,
+and prompts before anything runs. To skip the prompt (for scripts):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/install.sh | bash -s -- --yes
+```
+
+Pass `--help` for the other options.
 
 ## Requirements
 
