@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OneNote Settings</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #1b1b1b;
+        --fg: #e8e8e8;
+        --muted: #9a9a9a;
+        --line: #3a3a3a;
+        --accent: #2d6cdf;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #fafafa;
+          --fg: #1c1c1c;
+          --muted: #5f5f5f;
+          --line: #d8d8d8;
+        }
+      }
+      body {
+        font: 14px/1.5 system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 1.4rem;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      h1 {
+        font-size: 1.05rem;
+        margin: 0 0 1.2rem;
+      }
+      h1 small {
+        display: block;
+        font-weight: 400;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.9rem 0.9rem;
+      }
+      legend {
+        padding: 0 0.35rem;
+        color: #7fb3ff;
+      }
+      label {
+        display: flex;
+        gap: 0.55rem;
+        align-items: flex-start;
+        margin-bottom: 0.7rem;
+        cursor: pointer;
+      }
+      label:last-child {
+        margin-bottom: 0;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 0.4rem;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.35);
+        color: inherit;
+        font: inherit;
+        box-sizing: border-box;
+      }
+      p.hint {
+        color: var(--muted);
+        margin: 0.5rem 0 0;
+        font-size: 0.85rem;
+      }
+      code {
+        background: rgba(127, 127, 127, 0.2);
+        padding: 0.05rem 0.3rem;
+        border-radius: 3px;
+      }
+      .row {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+      }
+      .row input[type="text"] {
+        width: 6rem;
+      }
+      button {
+        padding: 0.45rem 1.1rem;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      #status {
+        color: #6fd28f;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      OneNote
+      <small>Unofficial Linux client. Not affiliated with Microsoft.</small>
+    </h1>
+
+    <fieldset>
+      <legend>Window</legend>
+      <label>
+        <input type="checkbox" id="close_to_tray" />
+        <span>Close to tray instead of quitting</span>
+      </label>
+      <label>
+        <input type="checkbox" id="start_minimized" />
+        <span>Start minimized to the tray</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Notifications</legend>
+      <label>
+        <input type="checkbox" id="notifications" />
+        <span>Show desktop notifications</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Navigation</legend>
+      <label>
+        <input type="checkbox" id="allow_federated_hosts" />
+        <span>
+          Keep organisation sign-in hosts in this window<br />
+          <small
+            style="color: var(--muted)"
+            >Hosts starting with login, adfs, sso, idp, auth, owa or autodiscover.
+            Needed for work and school single sign-on, but a lookalike host such
+            as sso.example.invalid would also be trusted. Turn off and list your
+            IdP host above if you prefer.</small
+          >
+        </span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Extra allowed hosts</legend>
+      <input type="text" id="allowed_hosts" placeholder="adfs.contoso.com, *.contoso.com" />
+      <p class="hint">
+        Add your organisation's sign-in hosts so single sign-on does not get
+        bounced out to Firefox. Comma separated.
+        <code>*.example.com</code> matches subdomains.
+      </p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Zoom</legend>
+      <div class="row">
+        <input type="text" id="zoom" value="1" />
+        <button id="save">Save</button>
+        <span id="status"></span>
+      </div>
+    </fieldset>
+
+    <script>
+      (function () {
+        var cfg = window.__ONENOTE_CONFIG__ || {};
+
+        function box(id, value) {
+          document.getElementById(id).checked = !!value;
+        }
+        box("close_to_tray", cfg.close_to_tray);
+        box("start_minimized", cfg.start_minimized);
+        box("notifications", cfg.notifications);
+        box("allow_federated_hosts", cfg.allow_federated_hosts);
+        document.getElementById("allowed_hosts").value =
+          (cfg.allowed_hosts || []).join(", ");
+        document.getElementById("zoom").value = String(cfg.zoom || 1);
+
+        document.getElementById("save").addEventListener("click", function () {
+          var zoom = parseFloat(document.getElementById("zoom").value) || 1;
+          window.__onenoteSave({
+            close_to_tray: document.getElementById("close_to_tray").checked ? "1" : "0",
+            start_minimized: document.getElementById("start_minimized").checked ? "1" : "0",
+            notifications: document.getElementById("notifications").checked ? "1" : "0",
+            allow_federated_hosts: document.getElementById("allow_federated_hosts").checked
+              ? "1"
+              : "0",
+            allowed_hosts: document.getElementById("allowed_hosts").value,
+            zoom: String(zoom),
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

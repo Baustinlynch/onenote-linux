@@ -1,0 +1,10 @@
+# Build artifacts
+/target
+/gen
+
+# Bundler output
+/bundle
+
+# Editor and OS noise
+*.swp
+.DS_Store

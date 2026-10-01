@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <clipPath id="page">
+      <path d="M16 8h72l24 24v88a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z"/>
+    </clipPath>
+  </defs>
+  <path d="M16 8h72l24 24v88a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z"
+        fill="#6c3ebe"/>
+  <g clip-path="url(#page)">
+    <rect x="12" y="8" width="12" height="112" fill="#4a278c"/>
+    <path d="M88 8h24v24z" fill="#4a278c"/>
+  </g>
+  <g fill="#ffffff">
+    <rect x="38" y="52" width="62" height="7" rx="3.5"/>
+    <rect x="38" y="68" width="62" height="7" rx="3.5"/>
+    <rect x="38" y="84" width="62" height="7" rx="3.5"/>
+    <rect x="38" y="100" width="38" height="7" rx="3.5"/>
+  </g>
+</svg>

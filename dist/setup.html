@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Set up OneNote</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #1b1b1b;
+        --fg: #e8e8e8;
+        --muted: #9a9a9a;
+        --line: #3a3a3a;
+        --accent: #2d6cdf;
+        --ok: #6fd28f;
+        --warn: #e8c46a;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #fafafa;
+          --fg: #1c1c1c;
+          --muted: #5f5f5f;
+          --line: #d8d8d8;
+        }
+      }
+      body {
+        font: 14px/1.55 system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 1.5rem 1.6rem 1.8rem;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      h1 {
+        font-size: 1.15rem;
+        margin: 0 0 0.3rem;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 1.3rem;
+        font-size: 0.87rem;
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        margin: 0 0 1rem;
+        padding: 0.8rem 0.95rem 1rem;
+      }
+      legend {
+        padding: 0 0.35rem;
+        color: #7fb3ff;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.45rem;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 0.45rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.35);
+        color: inherit;
+        font: inherit;
+        box-sizing: border-box;
+      }
+      p.hint {
+        color: var(--muted);
+        margin: 0.5rem 0 0;
+        font-size: 0.84rem;
+      }
+      code {
+        background: rgba(127, 127, 127, 0.2);
+        padding: 0.05rem 0.3rem;
+        border-radius: 3px;
+      }
+      ol.how {
+        margin: 0.4rem 0 0;
+        padding-left: 1.2rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      ol.how li {
+        margin-bottom: 0.35rem;
+      }
+      button {
+        padding: 0.45rem 1.1rem;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--fg);
+      }
+      button:hover {
+        filter: brightness(1.12);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+        filter: none;
+      }
+      .row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        margin-top: 0.7rem;
+        flex-wrap: wrap;
+      }
+      #result {
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        display: none;
+        font-size: 0.87rem;
+      }
+      #result.show {
+        display: block;
+      }
+      #result.ok {
+        border-color: var(--ok);
+      }
+      #result.warn {
+        border-color: var(--warn);
+      }
+      #result .brand {
+        font-weight: 600;
+      }
+      #result .host {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      details {
+        margin-top: 0.6rem;
+      }
+      summary {
+        cursor: pointer;
+        color: #7fb3ff;
+        font-size: 0.86rem;
+      }
+      .foot {
+        border-top: 1px solid var(--line);
+        margin-top: 1.2rem;
+        padding-top: 1rem;
+        display: flex;
+        gap: 0.6rem;
+        justify-content: space-between;
+        align-items: center;
+      }
+      #status {
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Set up OneNote</h1>
+    <p class="sub">
+      Unofficial Linux client. Not affiliated with Microsoft.
+    </p>
+
+    <fieldset>
+      <legend>Your work or school account</legend>
+      <label for="domain">Organisation domain or email address</label>
+      <input
+        type="text"
+        id="domain"
+        placeholder="school.ac.uk, or you@school.ac.uk"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="row">
+        <button id="detect">Find my sign-in server</button>
+      </div>
+      <p class="hint">
+        OneNote signs you in through Microsoft, but many organisations hand off
+        to their own server first. If that server is not recognised, your browser
+        opens instead and the app never returns. Finding it now avoids that.
+      </p>
+      <details>
+        <summary>How do I find this myself?</summary>
+        <ol class="how">
+          <li>
+            Use your work email, or just the part after the <code>@</code>. A
+            school might be <code>ac.uk</code> or <code>sch.uk</code>; a company
+            usually its own name.
+          </li>
+          <li>
+            If you are not sure, sign in to
+            <a href="https://portal.azure.com" id="portal">Microsoft 365</a> in
+            your browser. The address bar shows your organisation's domain once
+            you are in.
+          </li>
+          <li>
+            Or open Microsoft 365 in the app and let it fail. The address that
+            opens in your browser is the sign-in server, for example
+            <code>sts.your-school.ac.uk</code>. Copy that host into the box below.
+          </li>
+        </ol>
+      </details>
+    </fieldset>
+
+    <div id="result"></div>
+
+    <fieldset id="manual" style="display: none">
+      <legend>Enter it manually</legend>
+      <label for="manualhost">Sign-in hostname</label>
+      <input
+        type="text"
+        id="manualhost"
+        placeholder="sts.your-school.ac.uk"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <p class="hint">
+        Hostname only, no <code>https://</code> and no path. It is checked
+        against the same rules that decide what may load in this window.
+      </p>
+    </fieldset>
+
+    <div class="foot">
+      <span id="status"></span>
+      <span>
+        <button id="skip" class="secondary">Skip</button>
+        <button id="done">Continue</button>
+      </span>
+    </div>
+
+    <script>
+      (function () {
+        var domain = document.getElementById("domain");
+        var result = document.getElementById("result");
+        var manual = document.getElementById("manual");
+        var manualHost = document.getElementById("manualhost");
+        var status = document.getElementById("status");
+        var detectedHost = "";
+
+        function show(cls, html) {
+          result.className = "show " + cls;
+          result.innerHTML = html;
+        }
+
+        window.__onenoteOnDiscovery = function (json) {
+          var r;
+          try {
+            r = JSON.parse(json);
+          } catch (e) {
+            return;
+          }
+
+          if (r.state === "loading") {
+            show("", "<span>" + r.message + "</span>");
+            status.textContent = "";
+            return;
+          }
+
+          detectedHost = r.idp_host || "";
+          manual.style.display = detectedHost ? "none" : "";
+
+          var brand = r.brand
+            ? '<div class="brand">' +
+              r.brand.replace(/</g, "&lt;") +
+              "</div>"
+            : "";
+          var host = r.idp_host
+            ? '<div>Sign-in server: <span class="host">' +
+              r.idp_host.replace(/</g, "&lt;") +
+              "</span></div>"
+            : "";
+
+          if (r.state === "federated") {
+            show("ok", brand + host + "<div>" + r.message + "</div>");
+            status.textContent = "";
+          } else if (r.state === "managed") {
+            show("ok", brand + "<div>" + r.message + "</div>");
+            status.textContent = "";
+          } else {
+            show("warn", "<div>" + r.message + "</div>");
+            if (r.domain) {
+              status.textContent = "Looked up " + r.domain;
+            } else {
+              status.textContent = "That does not look like a domain";
+            }
+          }
+        };
+
+        document.getElementById("detect").addEventListener("click", function () {
+          var value = domain.value.trim();
+          if (!value) {
+            show("warn", "<div>Enter your organisation domain or email first.</div>");
+            return;
+          }
+          document.getElementById("detect").disabled = true;
+          status.textContent = "Looking up...";
+          window.__onenoteSetup.discover(value);
+        });
+
+        domain.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+            document.getElementById("detect").click();
+          }
+        });
+
+        // Following a link in this local page should not navigate the webview.
+        var portal = document.getElementById("portal");
+        portal.addEventListener("click", function (event) {
+          event.preventDefault();
+          window.open(portal.href, "_blank");
+        });
+
+        document.getElementById("skip").addEventListener("click", function () {
+          window.__onenoteSetup.finish("");
+        });
+
+        document.getElementById("done").addEventListener("click", function () {
+          var host = detectedHost || manualHost.value.trim();
+          window.__onenoteSetup.finish(host);
+        });
+      })();
+    </script>
+  </body>
+</html>

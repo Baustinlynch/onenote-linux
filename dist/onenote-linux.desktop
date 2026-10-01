@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=OneNote
+GenericName=Note-taking
+Comment=Unofficial Microsoft OneNote client for Linux
+Exec=onenote-linux
+Icon=onenote-linux
+Terminal=false
+Categories=Office;Education;Network;
+StartupWMClass=onenote-linux
+Keywords=notes;notebook;onenote;microsoft;
+StartupNotify=true
+X-GNOME-UsesNotifications=true
