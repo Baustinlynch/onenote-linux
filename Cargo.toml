@@ -1,6 +1,6 @@
 [package]
 name = "onenote-linux"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unofficial Microsoft OneNote desktop client for Linux"
 license = "MIT"
 edition = "2021"

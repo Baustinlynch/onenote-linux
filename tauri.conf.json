@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "OneNote",
-  "version": "0.1.0",
   "identifier": "dev.onenoteweb.linux",
   "build": {
     "frontendDist": "dist"
@@ -10,7 +9,7 @@
     "withGlobalTauri": false,
     "windows": [],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src https:; font-src 'self' data: https:;"
     }
   },
   "bundle": {

@@ -12,11 +12,18 @@ const ICON: &[u8] = include_bytes!("../icons/tray.png");
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Open OneNote", true, None::<&str>)?;
     let reload = MenuItem::with_id(app, "reload", "Reload", true, None::<&str>)?;
+    let clear = MenuItem::with_id(
+        app,
+        "clear-cache",
+        "Clear Cache and Sign Out\u{2026}",
+        true,
+        None::<&str>,
+    )?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "Settings\u{2026}", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, Some("Ctrl+Q"))?;
 
-    let menu = Menu::with_items(app, &[&open, &reload, &sep, &settings, &quit])?;
+    let menu = Menu::with_items(app, &[&open, &reload, &clear, &sep, &settings, &quit])?;
 
     TrayIconBuilder::with_id("main-tray")
         .icon(Image::from_bytes(ICON)?)
@@ -31,6 +38,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
                     let _ = win.reload();
                 }
             }
+            "clear-cache" => window::clear_cache(app),
             "settings" => crate::settings::show_settings_window(app),
             "quit" => {
                 app.exit(0);

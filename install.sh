@@ -70,10 +70,12 @@ sudo pacman -S --needed --noconfirm \
 # ── fetch latest release ────────────────────────────────────────────────
 log "Fetching latest release info from GitHub..."
 LATEST_URL="https://api.github.com/repos/${REPO}/releases/latest"
+# Match the asset whose file name is exactly the binary. A looser match also
+# hit every bundle, because the repository path itself contains the name.
 ASSET_URL=$(curl -fsSL "${LATEST_URL}" |
-    grep -o '"browser_download_url": *"[^"]*'"${BINARY_NAME}"'[^"]*"' |
+    grep -o '"browser_download_url": *"[^"]*/'"${BINARY_NAME}"'"' |
     head -1 |
-    cut -d'"' -f4)
+    cut -d'"' -f4 || true)
 
 if [[ -z "${ASSET_URL}" ]]; then
     err "Could not find ${BINARY_NAME} in latest release assets."

@@ -85,7 +85,7 @@ pub fn handle(app: &AppHandle, url: &tauri::Url) -> bool {
             .map(|(k, v)| (k.into_owned(), v.into_owned()))
             .collect();
 
-        if Config::load(app).notifications {
+        if Config::get().map(|c| c.notifications).unwrap_or(true) {
             spawn_toast(
                 app,
                 params.get("title").map(String::as_str).unwrap_or("OneNote"),

@@ -5,6 +5,7 @@ mod nav;
 mod notify;
 mod settings;
 mod setup;
+mod toolbar;
 mod tray;
 mod window;
 
@@ -18,8 +19,10 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let handle = app.handle().clone();
-            let cfg = config::Config::load(&handle);
-            let first_run = setup::is_first_run(&handle);
+            let cfg = config::Config::load_cached(&handle);
+            // A config on disk means setup already ran, even if it was written
+            // by an older build that had no `setup_complete` flag.
+            let first_run = !config::Config::exists();
 
             // The main window is always built, so the tray has something to
             // show, but it stays hidden behind the setup wizard.
@@ -44,8 +47,13 @@ fn main() {
                     // Settings and setup are normal dialogs: let them close.
                     if label != window::SETTINGS_LABEL
                         && label != setup::LABEL
-                        && config::Config::load(window.app_handle()).close_to_tray
+                        && config::Config::get()
+                            .map(|c| c.close_to_tray)
+                            .unwrap_or(true)
                     {
+                        // A drag throttles geometry writes, so capture the
+                        // final position before hiding.
+                        window::persist_state_now(window.app_handle());
                         api.prevent_close();
                         let _ = window.hide();
                     }
@@ -60,13 +68,21 @@ fn main() {
         })
         .build(tauri::generate_context!())
         .expect("failed to start onenote-linux")
-        .run(|app, event| {
+        .run(|_app, event| {
             if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
                 // Closing the last window is not a quit request while the tray
                 // icon is live. An explicit `app.exit(0)` carries a code and
                 // is always honoured.
-                if code.is_none() && config::Config::load(app).close_to_tray {
+                if code.is_none()
+                    && config::Config::get()
+                        .map(|c| c.close_to_tray)
+                        .unwrap_or(true)
+                {
+                    // Still remember where the window was before we stay alive.
+                    window::persist_state_now(_app);
                     api.prevent_exit();
+                } else {
+                    window::persist_state_now(_app);
                 }
             }
         });

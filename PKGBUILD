@@ -2,11 +2,11 @@
 # Unofficial Microsoft OneNote client for Linux. Not affiliated with Microsoft.
 
 pkgname=onenote-linux
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Unofficial Microsoft OneNote desktop client for Linux'
 arch=('x86_64' 'aarch64')
-url='https://github.com/brenden-duncan/onenote-linux'
+url='https://github.com/Baustinlynch/onenote-linux'
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk4' 'libayatana-appindicator' 'libnotify')
 optdepends=('xdg-utils: open external links in the default browser')

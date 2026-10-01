@@ -31,7 +31,6 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            libssl-dev \
             pkg-config
 
       - uses: dtolnay/rust-toolchain@stable
@@ -49,20 +48,21 @@ jobs:
       - name: Tests
         run: cargo test
 
+      - name: Release tag matches Cargo.toml version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 \
+            | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$version" != "$tag" ]]; then
+            echo "Tag v$tag does not match Cargo.toml version $version" >&2
+            exit 1
+          fi
+
   bundle:
-    name: Bundle (${{ matrix.label }})
+    name: Bundle
     needs: check
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: linux
-            target: x86_64-unknown-linux-gnu
-            bundles: deb,rpm
-          - label: appimage
-            target: x86_64-unknown-linux-gnu
-            bundles: appimage
     steps:
       - uses: actions/checkout@v4
 
@@ -73,68 +73,63 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            libssl-dev \
             pkg-config \
             file \
             fuse
 
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
 
-      - name: Build
+      # One job builds every artifact once. A matrix here compiled the same
+      # binary per target and each job then produced all bundles, because the
+      # per-job `--bundles` was never passed through.
+      - name: Build bundles
         uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: .
-          args: --target ${{ matrix.target }}
-          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('OneNote {0}', github.ref_name) || '' }}
-          releaseDraft: true
-          releaseBody: |
+          args: --bundles deb,rpm,appimage
+
+      - name: Collect release files
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p upload
+          cp target/release/onenote-linux upload/onenote-linux
+          find target/release/bundle -type f \
+            \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \
+            -exec cp {} upload/ \;
+
+      - name: Checksums
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: upload
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onenote-linux
+          path: |
+            target/release/onenote-linux
+            target/release/bundle/**
+          if-no-files-found: warn
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ format('OneNote {0}', github.ref_name) }}
+          draft: true
+          prerelease: false
+          files: upload/*
+          body: |
             Unofficial Microsoft OneNote client for Linux.
 
             Not affiliated with Microsoft. This is a wrapper around the
             OneNote web client and requires a Microsoft 365 account.
 
-            Checksums (`SHA256SUMS` in the assets) cover every other file in
-            this release.
-          prerelease: false
-
-      - name: Collect artifacts
-        if: always()
-        run: |
-          mkdir -p upload
-          find target -type f \
-            \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \
-            -exec cp --parents {} upload/ \; 2>/dev/null || true
-
-      - name: Checksums
-        if: always()
-        working-directory: upload
-        run: |
-          find . -type f ! -name 'SHA256SUMS' -print0 \
-            | sort -z \
-            | xargs -0 sha256sum > SHA256SUMS
-          cat SHA256SUMS
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: onenote-linux-${{ matrix.label }}
-          path: upload/
-          if-no-files-found: warn
-
-      - name: Attach checksums to release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: upload/SHA256SUMS
-          draft: true
+            The plain `onenote-linux` binary is what `install.sh` fetches; it
+            is built for x86_64 and expects the system WebKitGTK/GTK packages.
+            `SHA256SUMS` covers every other file in this release.

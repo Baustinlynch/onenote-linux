@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 use tauri::{
     AppHandle, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
@@ -7,19 +9,35 @@ use crate::keys;
 use crate::nav;
 use crate::notify;
 use crate::settings;
+use crate::toolbar;
 
 pub const MAIN_LABEL: &str = "main";
 pub const SETTINGS_LABEL: &str = "settings";
+
+/// Set once the first page has finished loading. Geometry events are ignored
+/// until then: the toolkit emits Moved/Resized while constructing the window,
+/// before it is realised, and reading scale/position at that point logs a GTK
+/// critical.
+static WINDOW_READY: AtomicBool = AtomicBool::new(false);
+
+/// Milliseconds since the Unix epoch of the last geometry write. Used to
+/// throttle the file writes that a window drag would otherwise cause.
+static LAST_PERSIST_MS: AtomicU64 = AtomicU64::new(0);
+
+/// Minimum gap between geometry writes while the user is dragging.
+const PERSIST_INTERVAL_MS: u64 = 1000;
 
 pub fn build_main(app: &AppHandle, cfg: &Config) -> tauri::Result<WebviewWindow> {
     let state = Config::load_window_state(app);
     let url = nav::parse(&cfg.start_url)
         .unwrap_or_else(|| tauri::Url::parse(START_URL).expect("valid start url"));
 
+    // Persistent webview storage. This must outlive a /tmp cleanup, so the
+    // fallback is our own data directory rather than the temporary directory.
     let data_dir = app
         .path()
         .app_data_dir()
-        .unwrap_or_else(|_| std::env::temp_dir())
+        .unwrap_or_else(|_| Config::data_dir())
         .join("webview");
 
     // The callbacks outlive this function, so they capture owned handles.
@@ -39,14 +57,20 @@ pub fn build_main(app: &AppHandle, cfg: &Config) -> tauri::Result<WebviewWindow>
         .enable_clipboard_access()
         .zoom_hotkeys_enabled(true)
         .accept_first_mouse(true)
-        .initialization_script(format!("{}\n{}", keys::BRIDGE_JS, notify::BRIDGE_JS))
+        .initialization_script(format!(
+            "{}\n{}\n{}",
+            keys::BRIDGE_JS,
+            notify::BRIDGE_JS,
+            toolbar::SCRIPT
+        ))
         .on_navigation(move |url| on_navigation(&nav_handle, url))
         .on_new_window(move |url, _features| on_new_window(&popup_handle, url))
         .on_page_load(move |window, payload| {
-            if payload.event() == tauri::webview::PageLoadEvent::Finished
-                && (zoom - 1.0).abs() > f64::EPSILON
-            {
-                let _ = window.set_zoom(zoom);
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                WINDOW_READY.store(true, Ordering::Relaxed);
+                if (zoom - 1.0).abs() > f64::EPSILON {
+                    let _ = window.set_zoom(zoom);
+                }
             }
         });
 
@@ -55,6 +79,21 @@ pub fn build_main(app: &AppHandle, cfg: &Config) -> tauri::Result<WebviewWindow>
     }
 
     builder.build()
+}
+
+/// Discard all webview data: cookies, cache and local storage. This signs the
+/// user out, which is why the menu item says so. Used to recover from a broken
+/// OneNote session.
+pub fn clear_cache(app: &AppHandle) {
+    let Some(win) = app.get_webview_window(MAIN_LABEL) else {
+        return;
+    };
+    if let Err(err) = win.clear_all_browsing_data() {
+        eprintln!("failed to clear browsing data: {err}");
+        return;
+    }
+    let _ = win.reload();
+    show_main(app);
 }
 
 /// Same-window navigation. Anything outside the allow-list is handed to the
@@ -72,7 +111,7 @@ fn on_navigation(app: &AppHandle, url: &tauri::Url) -> bool {
         trace_navigation("blocked-unsafe-scheme", url);
         return false;
     }
-    let cfg = Config::load(app);
+    let cfg = Config::get_or_default();
     if cfg.is_in_app(url) {
         true
     } else {
@@ -82,8 +121,12 @@ fn on_navigation(app: &AppHandle, url: &tauri::Url) -> bool {
     }
 }
 
-/// `target=_blank` links. Microsoft auth often opens popups, so in-app
-/// Microsoft links become a child window; everything else goes to the browser.
+/// `target=_blank` links and `window.open` calls.
+///
+/// Nothing is ever opened in a second window: a new webview would start
+/// without this window's session, storage and injected bridges, which is why
+/// opening a notebook used to produce a blank window. In-app destinations are
+/// loaded in the window we already have; everything else goes to the browser.
 fn on_new_window(
     app: &AppHandle,
     url: tauri::Url,
@@ -101,14 +144,28 @@ fn on_new_window(
         return NewWindowResponse::Deny;
     }
 
-    let cfg = Config::load(app);
+    let cfg = Config::get_or_default();
     if !cfg.is_in_app(&url) {
         trace_navigation("popup-handed-to-browser", &url);
         open_externally(app, url.as_str());
         return NewWindowResponse::Deny;
     }
 
-    NewWindowResponse::Allow
+    // In-app popup: reuse the main window rather than spawning a blank one.
+    // Navigate off-thread: this callback runs on the event loop, and driving
+    // a navigation synchronously from it can deadlock.
+    if app.get_webview_window(MAIN_LABEL).is_some() {
+        trace_navigation("popup-loaded-in-main", &url);
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Some(win) = app.get_webview_window(MAIN_LABEL) {
+                let _ = win.navigate(url);
+            }
+        });
+    } else {
+        trace_navigation("popup-no-main-window", &url);
+    }
+    NewWindowResponse::Deny
 }
 
 /// Record every navigation the policy rejects, so a misrouted single sign-on
@@ -146,7 +203,25 @@ fn open_externally(_app: &AppHandle, url: &str) {
     }
 }
 
+/// Persist geometry, throttled while the user is dragging. The final state
+/// after a drag is captured by [`persist_state_now`] when the window closes.
 pub fn persist_state(app: &AppHandle) {
+    if !WINDOW_READY.load(Ordering::Relaxed) {
+        return;
+    }
+    let now = now_millis();
+    let last = LAST_PERSIST_MS.load(Ordering::Relaxed);
+    if now.saturating_sub(last) < PERSIST_INTERVAL_MS {
+        return;
+    }
+    persist_state_now(app);
+}
+
+/// Persist geometry immediately, ignoring the throttle.
+pub fn persist_state_now(app: &AppHandle) {
+    if !WINDOW_READY.load(Ordering::Relaxed) {
+        return;
+    }
     let Some(win) = app.get_webview_window(MAIN_LABEL) else {
         return;
     };
@@ -161,6 +236,14 @@ pub fn persist_state(app: &AppHandle) {
         y: position.map(|p| p.y),
     };
     Config::save_window_state(app, &state);
+    LAST_PERSIST_MS.store(now_millis(), Ordering::Relaxed);
+}
+
+fn now_millis() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 pub fn show_main(app: &AppHandle) {

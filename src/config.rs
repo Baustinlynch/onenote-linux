@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::RwLock;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -8,6 +9,11 @@ use url::Url;
 use crate::nav;
 
 pub const START_URL: &str = "https://www.onenote.com/";
+
+// A `OnceLock` cannot be reassigned, so a config saved after startup (settings
+// changes, first-run setup) would never reach the running app. The lock keeps
+// the value readable everywhere and writable from `save`.
+static CONFIG_CACHE: RwLock<Option<Config>> = RwLock::new(None);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -84,40 +90,75 @@ impl Config {
         base.join("onenote-linux")
     }
 
-    pub fn path(app: &AppHandle) -> PathBuf {
-        let _ = app;
+    pub fn path() -> PathBuf {
         let dir = Self::dir();
         fs::create_dir_all(&dir).ok();
         dir.join("config.json")
     }
 
-    /// Whether a config file has ever been written. Used to decide if this is
-    /// a first run, before any defaults are filled in.
-    pub fn path_exists(app: &AppHandle) -> bool {
-        Self::path(app).is_file()
+    /// Whether a config file has ever been written. Older builds never wrote
+    /// `setup_complete`, so file presence - not that flag - is what tells us
+    /// the wizard has already been dealt with.
+    pub fn exists() -> bool {
+        Self::path().is_file()
+    }
+
+    /// Stable per-user data directory, used when the framework cannot resolve
+    /// one. Mirrors the XDG data layout rather than falling back to /tmp,
+    /// which is cleared on reboot and would lose the webview session.
+    pub fn data_dir() -> PathBuf {
+        let base = std::env::var("XDG_DATA_HOME")
+            .ok()
+            .filter(|p| !p.is_empty())
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var("HOME")
+                    .ok()
+                    .filter(|h| !h.is_empty())
+                    .map(|home| PathBuf::from(home).join(".local/share"))
+            })
+            .unwrap_or_else(|| PathBuf::from("."));
+        base.join("dev.onenoteweb.linux")
     }
 
     pub fn window_state_path(app: &AppHandle) -> PathBuf {
         let dir = app
             .path()
             .app_data_dir()
-            .unwrap_or_else(|_| Self::path(app).parent().unwrap().to_path_buf());
+            .unwrap_or_else(|_| Self::dir().parent().unwrap().to_path_buf());
         fs::create_dir_all(&dir).ok();
         dir.join("window-state.json")
     }
 
-    pub fn load(app: &AppHandle) -> Self {
-        let path = Self::path(app);
-        fs::read_to_string(&path)
+    /// Load config from disk, caching it globally. Call once at startup.
+    pub fn load_cached(_app: &AppHandle) -> Self {
+        let path = Self::path();
+        let config: Config = fs::read_to_string(&path)
             .ok()
             .and_then(|raw| serde_json::from_str(&raw).ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        *CONFIG_CACHE.write().unwrap_or_else(|e| e.into_inner()) = Some(config.clone());
+        config
     }
 
-    pub fn save(&self, app: &AppHandle) {
+    /// Get cached config, loading if necessary.
+    pub fn get() -> Option<Config> {
+        CONFIG_CACHE
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    /// Get cached config or default, returning owned value.
+    pub fn get_or_default() -> Config {
+        Self::get().unwrap_or_default()
+    }
+
+    pub fn save(&self, _app: &AppHandle) {
         if let Ok(raw) = serde_json::to_string_pretty(self) {
-            fs::write(Self::path(app), raw).ok();
+            fs::write(Self::path(), raw).ok();
         }
+        *CONFIG_CACHE.write().unwrap_or_else(|e| e.into_inner()) = Some(self.clone());
     }
 
     pub fn load_window_state(app: &AppHandle) -> WindowState {

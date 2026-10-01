@@ -30,6 +30,8 @@ notifications while using the webview already on your system.
 ## Features
 
 - Dedicated window, no browser tab clutter
+- In-window navigation bar (Back, Forward, Reload) plus `Alt+Left` /
+  `Alt+Right`; notebook links open in the same window rather than a blank one
 - System tray with show/hide, reload, settings, and quit
 - Close to tray; optional start minimized
 - Single instance: a second launch focuses the existing window

@@ -7,7 +7,7 @@
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use crate::config::{Config, WindowState};
+use crate::config::Config;
 use crate::window;
 
 pub const SCHEME: &str = "onenote-cfg";
@@ -37,7 +37,7 @@ pub fn handle(app: &AppHandle, window_label: &str, url: &tauri::Url) -> bool {
             .map(|(k, v)| (k.into_owned(), v.into_owned()))
             .collect();
 
-        let mut cfg = Config::load(app);
+        let mut cfg = Config::get_or_default();
         cfg.close_to_tray = flag(&params, "close_to_tray");
         cfg.start_minimized = flag(&params, "start_minimized");
         cfg.notifications = flag(&params, "notifications");
@@ -59,7 +59,7 @@ pub fn handle(app: &AppHandle, window_label: &str, url: &tauri::Url) -> bool {
         cfg.save(app);
 
         // The window is hidden but still running: state changes apply now.
-        persist_main_window(app);
+        crate::window::persist_state_now(app);
 
         if let Some(win) = app.get_webview_window(window::SETTINGS_LABEL) {
             let _ = win.eval(
@@ -76,24 +76,9 @@ fn flag(params: &std::collections::HashMap<String, String>, key: &str) -> bool {
     params.get(key).map(String::as_str) == Some("1")
 }
 
-/// Capture the main window geometry so the next run restores it.
-fn persist_main_window(app: &AppHandle) {
-    let Some(win) = app.get_webview_window(window::MAIN_LABEL) else {
-        return;
-    };
-    let scale = win.scale_factor().unwrap_or(1.0);
-    let size = win.inner_size().unwrap_or_default();
-    let position = win.outer_position().ok();
-
-    Config::save_window_state(
-        app,
-        &WindowState {
-            width: size.width as f64 / scale,
-            height: size.height as f64 / scale,
-            x: position.map(|p| p.x),
-            y: position.map(|p| p.y),
-        },
-    );
+/// Get current config for settings window initialization.
+pub fn current_config() -> Config {
+    Config::get_or_default()
 }
 
 pub fn show_settings_window(app: &AppHandle) {
@@ -103,7 +88,7 @@ pub fn show_settings_window(app: &AppHandle) {
         return;
     }
 
-    let cfg = Config::load(app);
+    let cfg = current_config();
     let json = serde_json::to_string(&cfg).unwrap_or_else(|_| "{}".into());
     let script = INJECT_CONFIG_JS.replace("__CONFIG_JSON__", &json);
     let owner = app.clone();
