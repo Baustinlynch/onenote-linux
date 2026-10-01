@@ -111,6 +111,10 @@ fn on_navigation(app: &AppHandle, url: &tauri::Url) -> bool {
         trace_navigation("blocked-unsafe-scheme", url);
         return false;
     }
+    if !nav::is_http_url(url) {
+        trace_navigation("blocked-internal-scheme", url);
+        return false;
+    }
     let cfg = Config::get_or_default();
     if cfg.is_in_app(url) {
         true
