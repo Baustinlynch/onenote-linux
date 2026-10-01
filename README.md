@@ -61,6 +61,23 @@ curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/i
 
 Pass `--help` for the other options.
 
+## Uninstall
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/uninstall.sh | bash
+```
+
+This removes the binary, desktop entry and icons. Your settings and signed-in
+session are **kept**, so reinstalling does not make you sign in again. To
+delete those too:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/uninstall.sh | bash -s -- --purge
+```
+
+The system packages are left alone unless you pass `--packages`, since other
+applications may need them. It will stop a running OneNote first.
+
 ## Requirements
 
 - WebKitGTK 4.1, GTK 4
