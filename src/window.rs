@@ -144,6 +144,11 @@ fn on_new_window(
         return NewWindowResponse::Deny;
     }
 
+    if !nav::is_http_url(&url) {
+        trace_navigation("popup-internal-scheme", &url);
+        return NewWindowResponse::Deny;
+    }
+
     let cfg = Config::get_or_default();
     if !cfg.is_in_app(&url) {
         trace_navigation("popup-handed-to-browser", &url);
