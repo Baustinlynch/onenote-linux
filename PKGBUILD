@@ -13,12 +13,8 @@ optdepends=('xdg-utils: open external links in the default browser')
 makedepends=('cargo' 'rust')
 provides=('onenote')
 conflicts=('onenote-desktop')
-# Replace with a release tarball URL once one is published:
-#   source=("$pkgname-$pkgver.tar.gz")
-#   sha256sums=('<sha256>')
-# Building straight from the working tree is the intended local workflow.
-source=()
-sha256sums=()
+source=("$pkgname-$pkgver.tar.gz::https://github.com/Baustinlynch/onenote-linux/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Replace with actual sha256 when publishing a release
 
 build() {
     cd "$srcdir/$pkgname-$pkgver"

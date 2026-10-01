@@ -27,6 +27,9 @@ notifications while using the webview already on your system.
 - External links open in your default browser
 - Window size and position remembered
 - ~10 MB, versus 200 MB+ for Electron-based wrappers
+- **First-run wizard** asks for your work/school domain, queries Microsoft
+  directly to find your identity provider, and pins it so single sign-on
+  completes inside the app
 
 ## Requirements
 
@@ -58,6 +61,20 @@ Run the tests:
 cargo test
 ```
 
+## First run — work and school accounts
+
+On the very first launch you are asked for your organisation domain or email
+(e.g. `ea.edin.sch.uk` or `you@ea.edin.sch.uk`). The app queries Microsoft's
+UserRealm endpoint to get the authoritative identity-provider URL, shows the
+tenant name for confirmation ("The City of Edinburgh Council"), and pins that
+host. The broad federation heuristic is then turned off automatically so only
+Microsoft-owned domains and your exact IdP can load in-app.
+
+If the lookup cannot determine a host, you can enter it manually — copy the
+hostname from the browser address bar the next time OneNote kicks you out (e.g.
+`sts.your-school.ac.uk`). The wizard is skippable and the same settings are
+reachable later from the tray menu.
+
 ## Signing in
 
 Start the app and sign in at the Microsoft sign-in page. Personal
@@ -67,9 +84,9 @@ as the sign-in flow stays inside the app window.
 **Federated single sign-on.** If your organisation uses ADFS, SAML, or another
 identity provider, Microsoft redirects to a host that cannot be predicted in
 advance. The app recognises sign-in hosts by shape (`login.*`, `adfs.*`,
-`sso.*`, `idp.*`, `auth.*`, `owa.*`, `autodiscover.*`) and keeps them in-app so
-the flow can complete. If your IdP does not match that shape, add it under
-**Settings → Extra allowed hosts**, for example `login.contoso.edu` or
+`sso.*`, `idp.*`, `auth.*`, `owa.*`, `autodiscover.*`, `sts.*`) and keeps them
+in-app so the flow can complete. If your IdP does not match that shape, add it
+under **Settings → Extra allowed hosts**, for example `login.contoso.edu` or
 `*.contoso.edu`.
 
 ## Settings
@@ -84,7 +101,8 @@ Reachable from the tray menu, or `~/.config/onenote-linux/config.json`:
   "start_url": "https://www.onenote.com/",
   "allowed_hosts": [],
   "allow_federated_hosts": true,
-  "notifications": true
+  "notifications": true,
+  "setup_complete": true
 }
 ```
 
@@ -97,6 +115,7 @@ Reachable from the tray menu, or `~/.config/onenote-linux/config.json`:
 | `allowed_hosts` | `[]` | Extra hosts kept in-app; supports `*.example.com` |
 | `allow_federated_hosts` | `true` | Recognise organisation IdP hosts by name shape |
 | `notifications` | `true` | Show desktop notifications |
+| `setup_complete` | `false` | Internal: first-run wizard completed |
 
 ### A note on the federation heuristic
 
@@ -109,7 +128,8 @@ marker as the first label, and rejection of any name carrying a Microsoft token
 
 If your organisation's IdP host is known, turn the heuristic off and list that
 host explicitly. Then only Microsoft-owned domains and hosts you named can load
-in-app; everything else goes to your browser.
+in-app; everything else goes to your browser. The first-run wizard does this
+automatically for you.
 
 ## Security posture
 
@@ -134,7 +154,9 @@ src/
   keys.rs       Ctrl+Q / Ctrl+H handling
   settings.rs   preferences window
   tray.rs       system tray icon and menu
-dist/           bundled pages (settings dialog)
+  setup.rs      first-run wizard window
+  discovery.rs  Microsoft UserRealm lookup and host validation
+dist/           bundled pages (settings dialog, setup wizard)
 scripts/        icon generation
 ```
 
