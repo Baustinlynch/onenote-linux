@@ -16,7 +16,10 @@ pub const SCRIPT: &str = r#"
   window.__onenoteBarInstalled = true;
 
   // OneNote replaces history entries from its router, so track a stack rather
-  // than trusting history.length to tell us which way we can move.
+  // than trusting history.length to tell us which way we can move. The stack is
+  // capped: a long-lived SPA can push entries indefinitely, and the exact count
+  // only matters for enabling the buttons.
+  var MAX_STACK = 100;
   var stack = [0];
   var pos = 0;
   var atTop = function () { return pos <= 0; };
@@ -132,7 +135,11 @@ pub const SCRIPT: &str = r#"
     history[name] = function () {
       if (name === "pushState") {
         stack = stack.slice(0, pos + 1);
-        stack.push(++pos);
+        stack.push(0);
+        if (stack.length > MAX_STACK) {
+          stack.shift();
+        }
+        pos = stack.length - 1;
       }
       var result = original.apply(this, arguments);
       sync();

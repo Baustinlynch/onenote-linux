@@ -42,6 +42,7 @@ pub fn handle(app: &AppHandle, window_label: &str, url: &tauri::Url) -> bool {
         cfg.start_minimized = flag(&params, "start_minimized");
         cfg.notifications = flag(&params, "notifications");
         cfg.allow_federated_hosts = flag(&params, "allow_federated_hosts");
+        cfg.block_ads = flag(&params, "block_ads");
         cfg.zoom = params
             .get("zoom")
             .and_then(|z| z.parse::<f64>().ok())
@@ -64,7 +65,7 @@ pub fn handle(app: &AppHandle, window_label: &str, url: &tauri::Url) -> bool {
         if let Some(win) = app.get_webview_window(window::SETTINGS_LABEL) {
             let _ = win.eval(
                 "document.getElementById('status').textContent = \
-                 'Saved. Applied immediately.';",
+                'Saved. Restarts required for the content blocker.';",
             );
         }
     }

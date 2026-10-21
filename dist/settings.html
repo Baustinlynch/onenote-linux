@@ -131,6 +131,23 @@
     </fieldset>
 
     <fieldset>
+      <legend>Content Blocking</legend>
+      <label>
+        <input type="checkbox" id="block_ads" />
+        <span>
+          Block ads and trackers
+          <p class="hint">
+            <small style="color: var(--muted)">
+              Uses an in-page filter inspired by uBlock Origin to block common
+              ad and tracking networks. Takes effect after restarting; may
+              need to be disabled for some corporate environments.
+            </small>
+          </p>
+        </span>
+      </label>
+    </fieldset>
+
+    <fieldset>
       <legend>Navigation</legend>
       <label>
         <input type="checkbox" id="allow_federated_hosts" />
@@ -177,6 +194,7 @@
         box("start_minimized", cfg.start_minimized);
         box("notifications", cfg.notifications);
         box("allow_federated_hosts", cfg.allow_federated_hosts);
+        box("block_ads", cfg.block_ads);
         document.getElementById("allowed_hosts").value =
           (cfg.allowed_hosts || []).join(", ");
         document.getElementById("zoom").value = String(cfg.zoom || 1);
@@ -190,6 +208,7 @@
             allow_federated_hosts: document.getElementById("allow_federated_hosts").checked
               ? "1"
               : "0",
+            block_ads: document.getElementById("block_ads").checked ? "1" : "0",
             allowed_hosts: document.getElementById("allowed_hosts").value,
             zoom: String(zoom),
           });

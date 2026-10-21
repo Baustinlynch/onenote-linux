@@ -51,9 +51,22 @@ const FEDERATION_LABELS: &[&str] = &[
 
 /// `host == suffix` or `host` ends with `.suffix`
 pub fn host_matches(host: &str, suffix: &str) -> bool {
-    let suffix = suffix.trim_start_matches("*.").to_ascii_lowercase();
-    let host = host.to_ascii_lowercase();
-    host == suffix || host.ends_with(&format!(".{suffix}"))
+    let suffix = suffix.trim_start_matches("*.").trim_end_matches('.');
+    eq_or_subdomain(host.trim_end_matches('.'), suffix)
+}
+
+/// Allocation-free match against a suffix that is already lowercased and has
+/// any leading `*.` removed. `matches_any` runs on every navigation, so it
+/// avoids the per-suffix `format!`/lowercase copies the old version made.
+fn eq_or_subdomain(host: &str, suffix: &str) -> bool {
+    if host.len() == suffix.len() {
+        return host.eq_ignore_ascii_case(suffix);
+    }
+    if host.len() <= suffix.len() + 1 || !host.is_char_boundary(host.len() - suffix.len()) {
+        return false;
+    }
+    let split = host.len() - suffix.len();
+    host.as_bytes()[split - 1] == b'.' && host[split..].eq_ignore_ascii_case(suffix)
 }
 
 /// Tokens that betray a Microsoft-impersonating host. A lookalike such as
@@ -82,8 +95,11 @@ fn has_federation_label(label: &str) -> bool {
 pub fn matches_any(url: &Url, extra: &[String]) -> bool {
     match url.host_str() {
         Some(host) => {
-            BUILT_IN.iter().any(|s| host_matches(host, s))
-                || extra.iter().any(|e| host_matches(host, e))
+            let host = host.trim_end_matches('.').to_ascii_lowercase();
+            BUILT_IN.iter().any(|s| eq_or_subdomain(&host, s))
+                || extra.iter().any(|e| {
+                    eq_or_subdomain(&host, e.trim_start_matches("*.").trim_end_matches('.'))
+                })
         }
         None => false,
     }

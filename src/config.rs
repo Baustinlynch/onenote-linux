@@ -31,6 +31,9 @@ pub struct Config {
     /// `nav::is_in_app` before leaving this on.
     pub allow_federated_hosts: bool,
     pub notifications: bool,
+    /// Enable ad/tracking blocker.
+    /// Uses a lightweight in-page filter inspired by uBlock Origin.
+    pub block_ads: bool,
     /// Whether the first-run wizard has been completed or explicitly skipped.
     /// Its absence is what makes the config file count as "not yet written",
     /// so the wizard appears exactly once.
@@ -47,6 +50,7 @@ impl Default for Config {
             allowed_hosts: Vec::new(),
             allow_federated_hosts: true,
             notifications: true,
+            block_ads: false,
             setup_complete: false,
         }
     }

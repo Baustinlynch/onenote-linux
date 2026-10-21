@@ -10,6 +10,7 @@ use crate::nav;
 use crate::notify;
 use crate::settings;
 use crate::toolbar;
+use crate::ublock;
 
 pub const MAIN_LABEL: &str = "main";
 pub const SETTINGS_LABEL: &str = "settings";
@@ -57,12 +58,19 @@ pub fn build_main(app: &AppHandle, cfg: &Config) -> tauri::Result<WebviewWindow>
         .enable_clipboard_access()
         .zoom_hotkeys_enabled(true)
         .accept_first_mouse(true)
-        .initialization_script(format!(
-            "{}\n{}\n{}",
-            keys::BRIDGE_JS,
-            notify::BRIDGE_JS,
-            toolbar::SCRIPT
-        ))
+        .initialization_script({
+            let mut script = format!(
+                "{}\n{}\n{}",
+                keys::BRIDGE_JS,
+                notify::BRIDGE_JS,
+                toolbar::SCRIPT
+            );
+            if cfg.block_ads {
+                script.push('\n');
+                script.push_str(ublock::BRIDGE_JS);
+            }
+            script
+        })
         .on_navigation(move |url| on_navigation(&nav_handle, url))
         .on_new_window(move |url, _features| on_new_window(&popup_handle, url))
         .on_page_load(move |window, payload| {
