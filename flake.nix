@@ -14,7 +14,25 @@
         overlays = [ rust-overlay.overlays.default ];
       };
       
-      rustToolchain = pkgs.rust-bin.stable."1.85.0".default;
+      rustToolchain = pkgs.rust-bin.stable.latest.default;
+      
+      # Shared libraries the app needs at runtime (also used by the wrapper).
+      runtimeLibs = with pkgs; [
+        webkitgtk_4_1
+        gtk4
+        libayatana-appindicator
+        libnotify
+        glib
+        gdk-pixbuf
+        cairo
+        pango
+        harfbuzz
+        freetype
+        fontconfig
+        alsa-lib
+        libpulseaudio
+        libuuid
+      ];
       
       onenote = pkgs.rustPlatform.buildRustPackage {
         pname = "onenote-linux";
@@ -30,31 +48,13 @@
           rustToolchain
         ];
         
-        buildInputs = with pkgs; [
-          webkitgtk_4_1
-          gtk4
-          libayatana-appindicator
-          libnotify
+        buildInputs = runtimeLibs ++ (with pkgs; [
           xdg-utils
           openssl
-          
-          # Additional GTK runtime dependencies
-          glib
-          gdk-pixbuf
-          cairo
-          pango
-          harfbuzz
-          freetype
-          fontconfig
-          alsa-lib
-          libpulseaudio
           libappindicator-gtk3
-          libuuid
-          
-          # Icons and other assets
           shared-mime-info
           hicolor-icon-theme
-        ];
+        ]);
         
         # Skip tests during build (no headless WebKit in CI)
         doCheck = false;
@@ -69,13 +69,13 @@
           mkdir -p $out/share/icons/hicolor/32x32/apps
           cp icons/32x32.png $out/share/icons/hicolor/32x32/apps/onenote-linux.png
           
-          mkdir -p $out/bin
+          # Wrap the binary so it can find the GTK/WebKit shared libraries
+          # without being run inside a nix shell.
+          mv $out/bin/onenote-linux $out/bin/.onenote-linux-unwrapped
           cat > $out/bin/onenote-linux << EOF
 #!/usr/bin/env bash
-export LD_LIBRARY_PATH=${pkgs.gtk4}/lib:${pkgs.webkitgtk_4_1}/lib:${pkgs.libayatana-appindicator}/lib:${pkgs.libpulseaudio}/lib
-export GTK_PATH=${pkgs.gtk4}/lib/gtk-4.0
-
-exec $out/bin/onenote-linux "\$@"
+export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath runtimeLibs}:\$LD_LIBRARY_PATH
+exec $out/bin/.onenote-linux-unwrapped "\$@"
 EOF
           chmod +x $out/bin/onenote-linux
         '';
