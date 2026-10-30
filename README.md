@@ -109,6 +109,30 @@ Run the tests:
 cargo test
 ```
 
+## Nix
+
+This project provides a Nix flake. You can use it with:
+
+```sh
+# Enter a development shell with all dependencies
+nix develop github:Baustinlynch/onenote-linux
+
+# Build the package
+nix build github:Baustinlynch/onenote-linux
+
+# Run directly
+nix run github:Baustinlynch/onenote-linux
+```
+
+Or add it to your NixOS/home-manager configuration:
+
+```nix
+inputs.onenote-linux.url = "github:Baustinlynch/onenote-linux";
+
+# Then add to systemPackages or home.packages:
+onenote-linux.packages.${system}.default
+```
+
 ## First run — work and school accounts
 
 On the very first launch you are asked for your organisation domain or email
