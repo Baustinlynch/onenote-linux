@@ -14,56 +14,52 @@
         overlays = [ rust-overlay.overlays.default ];
       };
       
-      buildInputs = with pkgs; [
-        webkitgtk_4_1
-        gtk4
-        libayatana-appindicator
-        libnotify
-        xdg-utils
-        pkg-config
-        openssl
-        gcc
-        
-        # Additional GTK runtime dependencies
-        glib
-        gdk-pixbuf
-        cairo
-        pango
-        harfbuzz
-        freetype
-        fontconfig
-        alsa-lib
-        libpulseaudio
-        libappindicator-gtk3
-        libuuid
-        
-        # Icons and other assets
-        shared-mime-info
-        hicolor-icon-theme
-      ];
+      rustToolchain = pkgs.rust-bin.stable."1.85.0".default;
       
-      nativeBuildInputs = with pkgs; [
-        (rust-bin.stable."1.85.0".default)
-        pkgs.cargo
-        pkg-config
-      ];
-      
-      onenote = pkgs.stdenv.mkDerivation {
+      onenote = pkgs.rustPlatform.buildRustPackage {
         pname = "onenote-linux";
         version = "0.2.1";
         src = ./.;
         
-        inherit buildInputs nativeBuildInputs;
+        cargoLock = {
+          lockFile = ./Cargo.lock;
+        };
         
-        buildPhase = ''
-          export PATH=$rust/bin:$PATH
-          cargo build --release
-        '';
+        nativeBuildInputs = with pkgs; [
+          pkg-config
+          rustToolchain
+        ];
         
-        installPhase = ''
-          mkdir -p $out/bin
-          cp target/release/onenote-linux $out/bin/
+        buildInputs = with pkgs; [
+          webkitgtk_4_1
+          gtk4
+          libayatana-appindicator
+          libnotify
+          xdg-utils
+          openssl
           
+          # Additional GTK runtime dependencies
+          glib
+          gdk-pixbuf
+          cairo
+          pango
+          harfbuzz
+          freetype
+          fontconfig
+          alsa-lib
+          libpulseaudio
+          libappindicator-gtk3
+          libuuid
+          
+          # Icons and other assets
+          shared-mime-info
+          hicolor-icon-theme
+        ];
+        
+        # Skip tests during build (no headless WebKit in CI)
+        doCheck = false;
+        
+        postInstall = ''
           mkdir -p $out/share/applications
           cp dist/onenote-linux.desktop $out/share/applications/
           
@@ -79,18 +75,48 @@
 export LD_LIBRARY_PATH=${pkgs.gtk4}/lib:${pkgs.webkitgtk_4_1}/lib:${pkgs.libayatana-appindicator}/lib:${pkgs.libpulseaudio}/lib
 export GTK_PATH=${pkgs.gtk4}/lib/gtk-4.0
 
-exec $rust/bin/cargo run --release -- \$@
+exec $out/bin/onenote-linux "\$@"
 EOF
           chmod +x $out/bin/onenote-linux
         '';
       };
       
       devShell = pkgs.mkShell {
-        inherit buildInputs nativeBuildInputs;
+        nativeBuildInputs = with pkgs; [
+          rustToolchain
+          pkgs.cargo
+          pkg-config
+        ];
+        
+        buildInputs = with pkgs; [
+          webkitgtk_4_1
+          gtk4
+          libayatana-appindicator
+          libnotify
+          xdg-utils
+          openssl
+          
+          # Additional GTK runtime dependencies
+          glib
+          gdk-pixbuf
+          cairo
+          pango
+          harfbuzz
+          freetype
+          fontconfig
+          alsa-lib
+          libpulseaudio
+          libappindicator-gtk3
+          libuuid
+          
+          # Icons and other assets
+          shared-mime-info
+          hicolor-icon-theme
+        ];
         
         shellHook = ''
           echo "OneNote Linux development shell"
-          echo "To run the app: $rust/bin/cargo run"
+          echo "To run the app: cargo run"
           echo "To build: cargo build --release"
           echo "To run tests: cargo test"
         '';
