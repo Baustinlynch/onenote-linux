@@ -70,14 +70,20 @@
           
           mkdir -p $out/share/icons/hicolor/32x32/apps
           cp icons/32x32.png $out/share/icons/hicolor/32x32/apps/onenote-linux.png
-          
-          # wrapGAppsHook4 (added to nativeBuildInputs) automatically wraps
-          # $out/bin/* with GIO_MODULE_DIR pointing at the glib-networking
-          # modules found in buildInputs, plus other GTK/GSettings env vars.
-          # We only need to additionally expose the runtime shared libraries.
-          makeWrapperArgs+=(--prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs})
-          # Explicitly set GIO_MODULE_DIR to ensure glib-networking TLS modules are found
-          makeWrapperArgs+=(--prefix GIO_MODULE_DIR : ${pkgs.glib-networking}/lib/gio/modules)
+        '';
+
+        # wrapGAppsHook4 (added to nativeBuildInputs) wraps $out/bin/* in
+        # fixupPhase, but it only passes `gappsWrapperArgs` to wrapProgram --
+        # `makeWrapperArgs` is ignored. Extend `gappsWrapperArgs` in preFixup
+        # instead, which runs immediately before the hook builds the wrapper.
+        #
+        # LD_LIBRARY_PATH is required for libraries the app dlopen()s at
+        # runtime (notably libayatana-appindicator3 for the tray), because
+        # those names are not resolved through the binary's RUNPATH.
+        # GIO_MODULE_DIR is required for glib-networking's TLS modules.
+        preFixup = ''
+          gappsWrapperArgs+=(--prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs})
+          gappsWrapperArgs+=(--prefix GIO_MODULE_DIR : ${pkgs.glib-networking}/lib/gio/modules)
         '';
       };
       
@@ -114,6 +120,11 @@
           shared-mime-info
           hicolor-icon-theme
         ];
+        
+        # `cargo run` is not wrapped, so expose the same runtime libraries the
+        # package wrapper sets. Without this, dlopen()ing the tray library
+        # (libayatana-appindicator3) panics at startup inside `nix develop`.
+        LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;
         
         shellHook = ''
           export GIO_MODULE_DIR=${pkgs.glib-networking}/lib/gio/modules/
