@@ -23,6 +23,7 @@
         libayatana-appindicator
         libnotify
         glib
+        glib-networking
         gdk-pixbuf
         cairo
         pango
@@ -75,6 +76,7 @@
           cat > $out/bin/onenote-linux << EOF
 #!/usr/bin/env bash
 export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath runtimeLibs}:\$LD_LIBRARY_PATH
+export GIO_MODULE_DIR=${pkgs.glib-networking}/lib/gio/modules/
 exec $out/bin/.onenote-linux-unwrapped "\$@"
 EOF
           chmod +x $out/bin/onenote-linux
@@ -93,6 +95,7 @@ EOF
           gtk4
           libayatana-appindicator
           libnotify
+          glib-networking
           xdg-utils
           openssl
           
@@ -115,6 +118,7 @@ EOF
         ];
         
         shellHook = ''
+          export GIO_MODULE_DIR=${pkgs.glib-networking}/lib/gio/modules/
           echo "OneNote Linux development shell"
           echo "To run the app: cargo run"
           echo "To build: cargo build --release"

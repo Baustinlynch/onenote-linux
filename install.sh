@@ -139,10 +139,11 @@ ok "Detected an Arch-based system."
 
 # ── install deps ────────────────────────────────────────────────────────
 step "Installing system dependencies via pacman"
-info "webkit2gtk-4.1, gtk4, libayatana-appindicator, libnotify, xdg-utils"
+info "webkit2gtk-4.1, gtk4, glib-networking, libayatana-appindicator, libnotify, xdg-utils"
 run sudo pacman -S --needed --noconfirm \
     webkit2gtk-4.1 \
     gtk4 \
+    glib-networking \
     libayatana-appindicator \
     libnotify \
     xdg-utils
