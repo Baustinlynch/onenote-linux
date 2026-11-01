@@ -47,6 +47,7 @@
         nativeBuildInputs = with pkgs; [
           pkg-config
           rustToolchain
+          wrapGAppsHook4
         ];
         
         buildInputs = runtimeLibs ++ (with pkgs; [
@@ -70,16 +71,11 @@
           mkdir -p $out/share/icons/hicolor/32x32/apps
           cp icons/32x32.png $out/share/icons/hicolor/32x32/apps/onenote-linux.png
           
-          # Wrap the binary so it can find the GTK/WebKit shared libraries
-          # without being run inside a nix shell.
-          mv $out/bin/onenote-linux $out/bin/.onenote-linux-unwrapped
-          cat > $out/bin/onenote-linux << EOF
-#!/usr/bin/env bash
-export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath runtimeLibs}:\$LD_LIBRARY_PATH
-export GIO_MODULE_DIR=${pkgs.glib-networking}/lib/gio/modules/
-exec $out/bin/.onenote-linux-unwrapped "\$@"
-EOF
-          chmod +x $out/bin/onenote-linux
+          # wrapGAppsHook4 (added to nativeBuildInputs) automatically wraps
+          # $out/bin/* with GIO_MODULE_DIR pointing at the glib-networking
+          # modules found in buildInputs, plus other GTK/GSettings env vars.
+          # We only need to additionally expose the runtime shared libraries.
+          makeWrapperArgs+=(--prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs})
         '';
       };
       
