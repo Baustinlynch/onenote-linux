@@ -76,6 +76,8 @@
           # modules found in buildInputs, plus other GTK/GSettings env vars.
           # We only need to additionally expose the runtime shared libraries.
           makeWrapperArgs+=(--prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeLibs})
+          # Explicitly set GIO_MODULE_DIR to ensure glib-networking TLS modules are found
+          makeWrapperArgs+=(--prefix GIO_MODULE_DIR : ${pkgs.glib-networking}/lib/gio/modules)
         '';
       };
       
