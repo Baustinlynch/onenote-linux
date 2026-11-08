@@ -45,13 +45,14 @@ notifications while using the webview already on your system.
   directly to find your identity provider, and pins it so single sign-on
   completes inside the app
 
-## Quick install (Arch / Arch-based)
+## Quick install (any distro)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Baustinlynch/onenote-linux/master/install.sh | bash
 ```
 
-The script installs system dependencies via `pacman`, downloads the latest
+The script detects your distro by package manager (dnf, apt, pacman, zypper
+or apk), installs only the dependencies that are missing, downloads the latest
 release binary, and sets up the desktop entry + icons. It prints each step,
 and prompts before anything runs. To skip the prompt (for scripts):
 
@@ -84,6 +85,18 @@ applications may need them. It will stop a running OneNote first.
 - `libayatana-appindicator` for the tray icon
 - `libnotify` (`notify-send`) for notifications
 - `xdg-utils` (for opening external links)
+
+On Fedora:
+
+```sh
+sudo dnf install webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils
+```
+
+On Debian/Ubuntu:
+
+```sh
+sudo apt install libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 libnotify4 xdg-utils
+```
 
 On Arch:
 

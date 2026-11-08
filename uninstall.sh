@@ -21,7 +21,27 @@ CONFIG_DIR="${HOME}/.config/onenote-linux"
 DATA_DIR="${HOME}/.local/share/dev.onenoteweb.linux"
 STATE_DIR="${HOME}/.local/state/onenote-linux"
 
-PACKAGES=(webkit2gtk-4.1 gtk4 libayatana-appindicator libnotify xdg-utils)
+# Runtime package names to remove, per manager. Kept in sync with install.sh.
+detect_pkg_manager() {
+    local mgr
+    for mgr in dnf zypper pacman apt-get apk; do
+        if command -v "${mgr}" &>/dev/null; then
+            printf '%s' "${mgr}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+PKG_MGR=$(detect_pkg_manager || true)
+case "${PKG_MGR}" in
+    dnf)     PACKAGES=(webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+    apt-get) PACKAGES=(libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 libnotify4 xdg-utils) ;;
+    pacman)  PACKAGES=(webkit2gtk-4.1 gtk4 glib-networking libayatana-appindicator libnotify xdg-utils) ;;
+    zypper)  PACKAGES=(libwebkit2gtk-4_1-0 gtk4 glib-networking libayatana-appindicator3-1 libnotify xdg-utils) ;;
+    apk)     PACKAGES=(webkit2gtk-4.1 gtk4.0 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+    *)       PACKAGES=() ;;
+esac
 
 ASSUME_YES=0
 PURGE=0
@@ -189,12 +209,18 @@ fi
 # ── 4. system packages ───────────────────────────────────────────────────
 step "Removing system packages"
 if [[ "$REMOVE_PACKAGES" == "1" ]] || maybe_do 0 "Remove the system packages too?"; then
-    if command -v pacman &>/dev/null; then
-        warn "Only removing them if nothing else on the system needs them."
-        run sudo pacman -R --noconfirm "${PACKAGES[@]}" || true
-        ok "Package removal attempted."
+    if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+        warn "No supported package manager found; skipping package removal."
     else
-        warn "pacman not found; skipping package removal."
+        warn "Only removing them if nothing else on the system needs them."
+        case "${PKG_MGR}" in
+            dnf)     run sudo dnf remove -y "${PACKAGES[@]}" || true ;;
+            apt-get) run sudo apt-get remove -y "${PACKAGES[@]}" || true ;;
+            pacman)  run sudo pacman -R --noconfirm "${PACKAGES[@]}" || true ;;
+            zypper)  run sudo zypper remove -y "${PACKAGES[@]}" || true ;;
+            apk)     run sudo apk del "${PACKAGES[@]}" || true ;;
+        esac
+        ok "Package removal attempted."
     fi
 else
     info "kept: ${PACKAGES[*]}"

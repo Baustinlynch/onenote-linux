@@ -64,6 +64,6 @@
 
 ## Installer Notes
 
-- Arch-only scripts (`install.sh`/`uninstall.sh`) fetched from `master` raw
+- Distro-agnostic scripts (`install.sh`/`uninstall.sh`) fetched from `master` raw; deps installed via dnf/apt/pacman/zypper/apk as detected
 - Scripts open `/dev/tty` for confirmation (check with `exec </dev/tty`)
 - `ETXTBSY` on reinstall: downloads to temp, verifies ELF magic (`0x7fELF`), then `mv` into place

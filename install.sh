@@ -6,8 +6,11 @@
 #    It was written with AI assistance and has NOT been thoroughly audited.
 #    Use at your own risk. Review the code before running on sensitive systems.
 # ═══════════════════════════════════════════════════════════════════════
-# Installs system dependencies (Arch/Arch-based) and the latest release binary
-# from GitHub.
+# Installs the system dependencies (best effort, when they are missing) and
+# the latest release binary from GitHub. Works on any distro with one of:
+# dnf (Fedora/RHEL), apt (Debian/Ubuntu), pacman (Arch), zypper (openSUSE)
+# and apk (Alpine). On anything else the binary is still installed, but the
+# dependencies must be provided by you first.
 #
 #   curl -fsSL <url> | bash                 # prompts before changing anything
 #   curl -fsSL <url> | bash -s -- --yes     # non-interactive
@@ -125,29 +128,116 @@ confirm $'\nContinue installation?'
 
 # ── detect distro ───────────────────────────────────────────────────────
 step "Checking the system"
-if ! command -v pacman &>/dev/null; then
-    err "This installer only supports Arch-based distros (it uses pacman)."
-    err "For other distros, install the dependencies manually and download from:"
-    err "  https://github.com/${REPO}/releases"
-    exit 1
+# Work off the package manager rather than the distro name: release names
+# drift, but every supported family has exactly one of these tools. The
+# distro ID (when readable) only decides which manager to prefer, so a box
+# that ships several of them is not mis-detected.
+DETECT_ID=""
+if [[ -r /etc/os-release ]]; then
+    DETECT_ID=$(
+        . /etc/os-release 2>/dev/null
+        printf '%s' "${ID-}" | tr '[:upper:]' '[:lower:]'
+    )
+    info "Detected distro: ${DETECT_ID}"
 fi
+
+PREFIX_ORDER="apt-get dnf zypper pacman apk"
+case "${DETECT_ID}" in
+    fedora | rhel | centos | rocky | almalinux | nobara | amzn)
+        PREFIX_ORDER="dnf apt-get pacman zypper apk" ;;
+    opensuse* | suse | sles)
+        PREFIX_ORDER="zypper dnf pacman apt-get apk" ;;
+    ubuntu | debian | linuxmint | pop | raspbian | zorin | elementary)
+        PREFIX_ORDER="apt-get dnf pacman zypper apk" ;;
+    arch | manjaro | endeavouros | garuda | cachyos | artix)
+        PREFIX_ORDER="pacman apt-get dnf zypper apk" ;;
+    alpine)
+        PREFIX_ORDER="apk dnf apt-get zypper pacman" ;;
+esac
+
+PKG_MGR=""
+for mgr in ${PREFIX_ORDER}; do
+    if command -v "${mgr}" &>/dev/null; then
+        PKG_MGR="${mgr}"
+        break
+    fi
+done
+if [[ -n "${PKG_MGR}" ]]; then
+    ok "Using ${PKG_MGR} to install missing dependencies."
+else
+    warn "No supported package manager found (dnf, apt, pacman, zypper, apk)."
+    warn "Continuing, but you must install the dependencies yourself:"
+    warn "  WebKitGTK 4.1, GTK 4, glib-networking, libayatana-appindicator3,"
+    warn "  libnotify, xdg-utils"
+fi
+
 if ! command -v curl &>/dev/null; then
     err "curl is required but was not found."
+    err "Install curl with your package manager, then re-run this script."
     exit 1
 fi
-ok "Detected an Arch-based system."
+ok "System check complete."
 
 # ── install deps ────────────────────────────────────────────────────────
-step "Installing system dependencies via pacman"
-info "webkit2gtk-4.1, gtk4, glib-networking, libayatana-appindicator, libnotify, xdg-utils"
-run sudo pacman -S --needed --noconfirm \
-    webkit2gtk-4.1 \
-    gtk4 \
-    glib-networking \
-    libayatana-appindicator \
-    libnotify \
-    xdg-utils
-ok "System dependencies are installed."
+step "Checking system dependencies"
+# Runtime package names for each manager. Only the ones that are actually
+# missing are installed, so `sudo` is never touched when the system already
+# satisfies every dependency.
+MISSING=()
+if [[ -n "${PKG_MGR}" ]]; then
+    DEPS=()
+    case "${PKG_MGR}" in
+        dnf)
+            DEPS=(webkit2gtk4.1 gtk4 glib-networking
+                libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+        apt-get)
+            DEPS=(libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking
+                libayatana-appindicator3-1 libnotify4 xdg-utils) ;;
+        pacman)
+            DEPS=(webkit2gtk-4.1 gtk4 glib-networking
+                libayatana-appindicator libnotify xdg-utils) ;;
+        zypper)
+            DEPS=(libwebkit2gtk-4_1-0 gtk4 glib-networking
+                libayatana-appindicator3-1 libnotify xdg-utils) ;;
+        apk)
+            DEPS=(webkit2gtk-4.1 gtk4.0 glib-networking
+                libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+    esac
+    pkg_installed() {
+        case "${PKG_MGR}" in
+            dnf | zypper) rpm -q "$1" >/dev/null 2>&1 ;;
+            pacman)       pacman -Q "$1" >/dev/null 2>&1 ;;
+            apt-get)      dpkg-query -s "$1" >/dev/null 2>&1 ;;
+            apk)          apk info -e "$1" >/dev/null 2>&1 ;;
+        esac
+    }
+    for dep in "${DEPS[@]}"; do
+        if pkg_installed "${dep}"; then
+            info "present: ${dep}"
+        else
+            MISSING+=("${dep}")
+            info "missing: ${dep}"
+        fi
+    done
+fi
+
+if [[ -z "${PKG_MGR}" ]]; then
+    warn "Skipped checking dependencies (no supported package manager)."
+    warn "Continuing on the assumption that they are already in place."
+elif [[ ${#MISSING[@]} -eq 0 ]]; then
+    ok "System dependencies are installed."
+else
+    # Prompt once before elevating; the binary install below runs unprivileged.
+    confirm "Install the ${#MISSING[@]} missing package(s) with ${PKG_MGR} (needs sudo)?"
+    case "${PKG_MGR}" in
+        dnf)     run sudo dnf install -y "${MISSING[@]}" ;;
+        apt-get) run sudo apt-get install -y "${MISSING[@]}" ;;
+        pacman)  run sudo pacman -S --needed --noconfirm "${MISSING[@]}" ;;
+        zypper)  run sudo zypper install -y "${MISSING[@]}" ;;
+        apk)     run sudo apk add "${MISSING[@]}" ;;
+    esac
+    ok "System dependencies are installed."
+fi
 
 # ── fetch latest release ────────────────────────────────────────────────
 step "Finding the latest release"
