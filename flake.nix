@@ -21,7 +21,6 @@
         webkitgtk_4_1
         gtk4
         libayatana-appindicator
-        libnotify
         glib
         glib-networking
         gdk-pixbuf
@@ -98,7 +97,6 @@
           webkitgtk_4_1
           gtk4
           libayatana-appindicator
-          libnotify
           glib-networking
           xdg-utils
           openssl

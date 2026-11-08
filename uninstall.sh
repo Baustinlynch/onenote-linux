@@ -35,11 +35,11 @@ detect_pkg_manager() {
 
 PKG_MGR=$(detect_pkg_manager || true)
 case "${PKG_MGR}" in
-    dnf)     PACKAGES=(webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
-    apt-get) PACKAGES=(libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 libnotify4 xdg-utils) ;;
-    pacman)  PACKAGES=(webkit2gtk-4.1 gtk4 glib-networking libayatana-appindicator libnotify xdg-utils) ;;
-    zypper)  PACKAGES=(libwebkit2gtk-4_1-0 gtk4 glib-networking libayatana-appindicator3-1 libnotify xdg-utils) ;;
-    apk)     PACKAGES=(webkit2gtk-4.1 gtk4.0 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+    dnf)     PACKAGES=(webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 xdg-utils) ;;
+    apt-get) PACKAGES=(libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 xdg-utils) ;;
+    pacman)  PACKAGES=(webkit2gtk-4.1 gtk4 glib-networking libayatana-appindicator xdg-utils) ;;
+    zypper)  PACKAGES=(libwebkit2gtk-4_1-0 gtk4 glib-networking libayatana-appindicator3-1 xdg-utils) ;;
+    apk)     PACKAGES=(webkit2gtk-4.1 gtk4.0 glib-networking libayatana-appindicator-gtk3 xdg-utils) ;;
     *)       PACKAGES=() ;;
 esac
 

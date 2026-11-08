@@ -24,6 +24,9 @@ reqwest = { version = "0.13", default-features = false, features = [
   "rustls",
   "system-proxy",
 ] }
+# Talks to the FreeDesktop notification daemon over D-Bus directly; the
+# previous bridge shelled out to the notify-send binary.
+notify-rust = "4"
 
 [profile.release]
 opt-level = "s"

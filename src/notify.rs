@@ -4,9 +4,7 @@
 //! the host. Instead the injected script signals us through a custom scheme
 //! (`onenote-notify://`) that the navigation handler intercepts and denies.
 
-use std::io::BufRead;
-use std::process::{Command, Stdio};
-
+use notify_rust::{Notification, Timeout, Urgency};
 use tauri::AppHandle;
 
 use crate::config::Config;
@@ -101,55 +99,91 @@ pub fn handle(app: &AppHandle, url: &tauri::Url) -> bool {
 
 /// Fire a native toast. Clicking the action raises the main window.
 fn spawn_toast(app: &AppHandle, title: &str, body: &str, tag: &str) {
-    let mut cmd = Command::new("notify-send");
-    cmd.args([
-        "--app-name=OneNote",
-        "--expire-time=8000",
-        "--action=open,Open OneNote",
-    ])
-    .arg("--icon=onenote-linux")
-    .arg("--urgency=normal");
+    let app = app.clone();
+    let title = title.to_string();
+    let body = body.to_string();
+    let replace_id = replace_id(tag);
 
-    if !tag.is_empty() {
-        cmd.arg(format!("--replace-id={}", sanitize_tag(tag)));
-    }
-
-    cmd.arg(title).arg(body);
-    cmd.stdin(Stdio::null());
-    cmd.stdout(Stdio::piped());
-
-    let mut child = match cmd.spawn() {
-        Ok(child) => child,
-        Err(err) => {
-            eprintln!("notify-send failed to spawn: {err}");
-            return;
-        }
-    };
-
-    // Block on the child's stdout in a worker so the action can focus us.
-    let handle = app.clone();
     std::thread::spawn(move || {
-        if let Some(stdout) = child.stdout.take() {
-            let mut line = String::new();
-            let mut reader = std::io::BufReader::new(stdout);
-            if reader.read_line(&mut line).is_ok() && line.trim() == "open" {
-                window::show_main(&handle);
-            }
+        let mut toast = Notification::new();
+        toast
+            .appname("OneNote")
+            .icon("onenote-linux")
+            .urgency(Urgency::Normal)
+            .timeout(Timeout::Milliseconds(8000))
+            .action("open", "Open OneNote")
+            .summary(&title)
+            .body(&body);
+
+        // Only pass a replaces_id when the page tagged the notification, so
+        // otherwise-untagged ones keep getting unique daemon-assigned ids.
+        if let Some(id) = replace_id {
+            toast.id(id);
         }
-        let _ = child.wait();
+
+        // Send it, then block the thread until the notification times out or
+        // the click action fires.
+        let handle = match toast.show() {
+            Ok(handle) => handle,
+            Err(err) => {
+                eprintln!("notification failed: {err}");
+                return;
+            }
+        };
+
+        handle.wait_for_action(|action| {
+            if action == "open" {
+                window::show_main(&app);
+            }
+        });
     });
 }
 
-/// `notify-send` replace-ids must be short and free of separators.
-fn sanitize_tag(tag: &str) -> String {
+/// Derive a stable replaces_id from the page's notification tag. The daemon
+/// replaces an existing toast with the same id, so OneNote's duplicate
+/// notifications collapse into one. Tagged, deterministic, short: FNV-1a over
+/// the sanitized tag, clamped to a positive 31-bit id.
+fn replace_id(tag: &str) -> Option<u32> {
     let cleaned: String = tag
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .take(64)
         .collect();
-    if cleaned.is_empty() {
-        "onenote".to_string()
-    } else {
-        cleaned
+    if cleaned.is_empty() || cleaned.chars().all(|c| c == '-') {
+        return None;
+    }
+    let mut hash: u32 = 0x811c_9dc5;
+    for byte in cleaned.as_bytes() {
+        hash ^= u32::from(*byte);
+        hash = hash.wrapping_mul(0x0100_0193);
+    }
+    Some(hash & 0x7fff_ffff)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::replace_id;
+
+    #[test]
+    fn same_tag_replaces_same_id() {
+        assert_eq!(replace_id("onenote-42"), replace_id("onenote-42"));
+    }
+
+    #[test]
+    fn different_tags_get_different_ids() {
+        assert_ne!(replace_id("a"), replace_id("b"));
+    }
+
+    #[test]
+    fn empty_tag_is_untagged() {
+        assert_eq!(replace_id(""), None);
+        assert_eq!(replace_id("---"), None);
+    }
+
+    #[test]
+    fn ids_are_short_positive() {
+        let id = replace_id("Some/Long*Tag!@#9831").unwrap();
+        assert!(id > 0);
+        assert!(id <= u32::MAX / 2);
     }
 }

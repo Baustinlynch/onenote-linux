@@ -168,7 +168,7 @@ else
     warn "No supported package manager found (dnf, apt, pacman, zypper, apk)."
     warn "Continuing, but you must install the dependencies yourself:"
     warn "  WebKitGTK 4.1, GTK 4, glib-networking, libayatana-appindicator3,"
-    warn "  libnotify, xdg-utils"
+    warn "  xdg-utils"
 fi
 
 if ! command -v curl &>/dev/null; then
@@ -189,19 +189,19 @@ if [[ -n "${PKG_MGR}" ]]; then
     case "${PKG_MGR}" in
         dnf)
             DEPS=(webkit2gtk4.1 gtk4 glib-networking
-                libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+                libayatana-appindicator-gtk3 xdg-utils) ;;
         apt-get)
             DEPS=(libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking
-                libayatana-appindicator3-1 libnotify4 xdg-utils) ;;
+                libayatana-appindicator3-1 xdg-utils) ;;
         pacman)
             DEPS=(webkit2gtk-4.1 gtk4 glib-networking
-                libayatana-appindicator libnotify xdg-utils) ;;
+                libayatana-appindicator xdg-utils) ;;
         zypper)
             DEPS=(libwebkit2gtk-4_1-0 gtk4 glib-networking
-                libayatana-appindicator3-1 libnotify xdg-utils) ;;
+                libayatana-appindicator3-1 xdg-utils) ;;
         apk)
             DEPS=(webkit2gtk-4.1 gtk4.0 glib-networking
-                libayatana-appindicator-gtk3 libnotify xdg-utils) ;;
+                libayatana-appindicator-gtk3 xdg-utils) ;;
     esac
     pkg_installed() {
         case "${PKG_MGR}" in

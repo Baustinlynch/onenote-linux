@@ -83,25 +83,24 @@ applications may need them. It will stop a running OneNote first.
 
 - WebKitGTK 4.1, GTK 4
 - `libayatana-appindicator` for the tray icon
-- `libnotify` (`notify-send`) for notifications
 - `xdg-utils` (for opening external links)
 
 On Fedora:
 
 ```sh
-sudo dnf install webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 libnotify xdg-utils
+sudo dnf install webkit2gtk4.1 gtk4 glib-networking libayatana-appindicator-gtk3 xdg-utils
 ```
 
 On Debian/Ubuntu:
 
 ```sh
-sudo apt install libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 libnotify4 xdg-utils
+sudo apt install libwebkit2gtk-4.1-0 libgtk-4-1 glib-networking libayatana-appindicator3-1 xdg-utils
 ```
 
 On Arch:
 
 ```sh
-sudo pacman -S --needed webkit2gtk-4.1 gtk4 libayatana-appindicator libnotify xdg-utils
+sudo pacman -S --needed webkit2gtk-4.1 gtk4 libayatana-appindicator xdg-utils
 ```
 
 ## Build and run

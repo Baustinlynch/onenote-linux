@@ -30,7 +30,7 @@
 
 ## Development Notes
 
-- **Dependencies**: `webkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `libnotify`, `xdg-utils`
+- **Dependencies**: `webkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, `xdg-utils`
 - **Nix**: `nix develop github:Baustinlynch/onenote-linux`
 - **Tests**: 17 unit tests in `src/nav.rs`; no UI tests (headless WebKit not available)
 - **Entry points**: `src/main.rs` runs the app; `src/window.rs` builds the main webview; `src/nav.rs` implements host allow-list and federation heuristic
